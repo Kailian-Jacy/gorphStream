@@ -12,41 +12,8 @@ var (
 	threshold = 100
 )
 
+// Build transactions into TPG.
 func Construct(txns []*events.Txn) *TpgMeta {
-	skipLists := decompose(txns)
-	// Construct into TPG meta.
-	meta := TpgMeta{}
-	meta.ExeMode = mode
-	for idx, l := range skipLists {
-		if len(l) != 0 && len(l[0].Opt.Dependencies()) == 0 {
-			meta.Starter = append(meta.Starter, l[0])
-			switch mode {
-			case DFS:
-				meta.Executor = append(meta.Executor, &DFSExecutor{
-					Idx:    idx,
-					Tpg:    &meta,
-					Ending: make(chan bool),
-				})
-			case DFSNotify:
-				meta.Executor = append(meta.Executor, &DFSNotifyExecutor{
-					Idx:       idx,
-					Tpg:       &meta,
-					Ending:    make(chan bool),
-					Threshold: threshold,
-				})
-			default:
-				panic("not implemented")
-			}
-		}
-	}
-	meta.Finish = make(chan int)
-	meta.Done = make([]bool, len(meta.Starter))
-
-	return &meta
-}
-
-// Preprocess for operations. Sort them with proxy.
-func decompose(txns []*events.Txn) [][]*TpgNode {
 	// Split these Operations into State-partitioned arrays.
 	slices.SortFunc(txns, func(a, b *events.Txn) int {
 		if a.Timestamp < b.Timestamp {
@@ -56,9 +23,13 @@ func decompose(txns []*events.Txn) [][]*TpgNode {
 		}
 	})
 
-	skipLists := make([][]*TpgNode, storage.NumStatus())
+	t := TpgMeta{}
+	t.Txns = txns
+	t.ExeMode = mode
+	t.LDHeads = make(map[*events.Txn]*TpgNode)
 
-	// To Construct the TD, we need to hold the last tpgNode in each status.
+	skipLists := make([][]*TpgNode, storage.NumStatus())
+	// To Construct the TD, we need to hold the last tpgNode for each state.
 	lastNodes := make([]*TpgNode, storage.NumStatus())
 	// To Construct the PD, we need to hold the last Write tpgNode in each status.
 	lastWriteNodes := make([]*TpgNode, storage.NumStatus())
@@ -96,6 +67,7 @@ func decompose(txns []*events.Txn) [][]*TpgNode {
 				for _, d := range dp {
 					if d == newNode.Opt.VarIdx() {
 						if lastNodes[d] != nil {
+							// Write the Version to the right position of ParamVersions.
 							for idx, v := range dp {
 								if d == v {
 									newNode.ParamVersions[idx] = lastNodes[d].Opt.Txn().Timestamp
@@ -133,7 +105,33 @@ func decompose(txns []*events.Txn) [][]*TpgNode {
 			// Append the new node to the overall list.
 			skipLists[op.VarIdx()] = append(skipLists[op.VarIdx()], &newNode)
 		}
+		t.LDHeads[txn] = lastInTxn
 	}
 
-	return skipLists
+	for idx, l := range skipLists {
+		if len(l) != 0 && len(l[0].Opt.Dependencies()) == 0 {
+			t.Starter = append(t.Starter, l[0])
+			switch mode {
+			case DFS:
+				t.Executor = append(t.Executor, &DFSExecutor{
+					Idx:    idx,
+					Tpg:    &t,
+					Ending: make(chan bool),
+				})
+			case DFSNotify:
+				t.Executor = append(t.Executor, &DFSNotifyExecutor{
+					Idx:       idx,
+					Tpg:       &t,
+					Ending:    make(chan bool),
+					Threshold: threshold,
+				})
+			default:
+				panic("not implemented")
+			}
+		}
+	}
+	t.Finish = make(chan int)
+	t.Done = make([]bool, len(t.Starter))
+
+	return &t
 }

@@ -20,7 +20,7 @@ const (
 
 const BANKER_SCHEMA = 2
 
-// The part of Callbacks
+// The part of Callbacks providing `Operation.Do()`
 
 var V1, V2 = 500, 200
 

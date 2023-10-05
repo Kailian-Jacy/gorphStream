@@ -11,12 +11,16 @@ const (
 )
 
 type TpgMeta struct {
-	ExeMode  int
+	ExeMode int
+	// Travers auxiliary.
 	Starter  []*TpgNode
 	Executor []Traversor
 	// Ending Sync
 	Finish chan int // Threads report finish.
 	Done   []bool
+	// Transactions
+	Txns    []*events.Txn
+	LDHeads map[*events.Txn]*TpgNode
 }
 
 type TpgNode struct {

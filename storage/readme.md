@@ -42,14 +42,25 @@ There are some lemmas about the TPG and MV storage:
    As "each state build adjacent next state with older version", if the updating requires older version, it's the same to say we get the future version first. It does not hold.
   ```
 
+### SkipList based History
+
+Visiting Variable history version features:
+- Sparcely indexed. The index is `txn.Timestamp`. So array does not fit.
+- We need them to be ordered for a series of versions. Like when reverting we need to come back to the second last version. So hashmap won't do.
+- More generously, we would need to insert and remove some version. So something like linked list suits.
+  
+So we are using skipList, i.e. ordered map to record the History.
+
+`TODO` more about skiplist.
+
 ## View based Parameter visiting
 
 As visiting value requires version and parameter index. This would incur:
 - Multiple copy between operation parameters and storage messaging.
-- Confusing indexes for user. User needs to index PD.Param to find out the index for variable in storage engine. 
+- Confusing multiple indexes for user. User needs to operate indexes of  `PD.Param` and the indexes for variable in storage engine.
 - Unclean and dangerous visiting interface,
 
-So we provided a delegation as `ParamView` to proxy the value visiting. It handles the Versioning and Index Redirection to provide user a clean view.
+So we provided a delegation as `ParamView` to proxy the value visiting. It handles the Versioning and Index Redirection to provide user a clean view, solving all of these problems.
 
 ```golang
   // Defines the parameter

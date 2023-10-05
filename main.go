@@ -8,10 +8,10 @@ import (
 )
 
 func main() {
-	exampleWithNaiveApi()
+	BankerApp()
 }
 
-func exampleWithNaiveApi() {
+func BankerApp() {
 	storage.Init(cmd.BANKER_SCHEMA)
 	tpg.Construct(
 		// Shuffle input.

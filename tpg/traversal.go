@@ -1,5 +1,10 @@
 package tpg
 
+import (
+	"fmt"
+	"gorphStream/storage"
+)
+
 const (
 	DFS = iota + 1
 	DFSNotify
@@ -11,18 +16,20 @@ type Traversor interface {
 }
 
 type DFSExecutor struct {
-	Idx   int
-	Tpg   *TpgMeta
-	Stack []*TpgNode
+	Idx      int
+	Tpg      *TpgMeta
+	Stack    []*TpgNode
+	ErrStack []*TpgNode
 
 	// Receive ending from the main thread.
 	Ending chan bool
 }
 
 type DFSNotifyExecutor struct {
-	Idx   int
-	Tpg   *TpgMeta // Visit shared variables.
-	Stack []*TpgNode
+	Idx      int
+	Tpg      *TpgMeta // Visit shared variables.
+	Stack    []*TpgNode
+	ErrStack []*TpgNode
 
 	// Receive ending from the main thread.
 	Ending chan bool
@@ -80,7 +87,48 @@ func (e *DFSExecutor) Traversal(node *TpgNode) {
 			}
 		}
 		// Execute Current. The parameter version is provided by node context.
-		node.Opt.Execute(&node.ParamVersions)
+		if err := node.Opt.Execute(&node.ParamVersions); err != nil {
+			// TODO: May report the error through TpgMeta.
+			fmt.Println("Error thrown: ", err)
+			// Switch to Marking ABT Operations.
+			e.ErrStack = []*TpgNode{node}
+			node = nil
+			for {
+				if node == nil {
+					// Pop ABT node.
+					if len(e.ErrStack) == 0 {
+						// Finish Marking ABT. Out with node == nil.
+						break
+					} else {
+						node = e.ErrStack[len(e.ErrStack)-1]
+						e.ErrStack = e.ErrStack[:len(e.ErrStack)-1]
+						// Move to the head of the LD chain.
+						node = e.Tpg.LDHeads[node.Opt.Txn()]
+						// Transasctions that has been marked. Skip.
+						if node.Status == ABT {
+							node = nil
+							continue
+						}
+					}
+				} else {
+					// Has been moved forward on the LD chain and is not nil
+				}
+				node.Status = ABT
+				// Revert all the states version of this transaction.
+				storage.Revert(node.Opt.Txn().Timestamp)
+				// Push all the new PDs into the ErrStack.
+				for _, d := range node.PD {
+					if d.Status != ABT {
+						e.ErrStack = append(e.ErrStack, d)
+					}
+				}
+				node = node.LD
+			}
+		}
+		if node == nil {
+			// Has just finished ABT marking.
+			continue
+		}
 		node.Opt.Logger()
 		node.Status = EXE
 		// Resolve the dependencies to be ready.

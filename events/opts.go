@@ -87,14 +87,3 @@ func (w *W) Dependencies() []int {
 	}
 	return w.dependencies
 }
-
-// Proxy is used to link up Operation and its visited variable.
-// type WProxy struct{}
-
-// func (p WProxy) Execute() {}
-
-// func (p WProxy) Type() int { return PROXY }
-
-// func (p WProxy) VarIdx() int { return -1 }
-
-// func (p WProxy) Dependencies() []int { return nil }
