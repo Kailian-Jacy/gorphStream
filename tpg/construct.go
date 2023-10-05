@@ -111,23 +111,11 @@ func Construct(txns []*events.Txn) *TpgMeta {
 	for idx, l := range skipLists {
 		if len(l) != 0 && len(l[0].Opt.Dependencies()) == 0 {
 			t.Starter = append(t.Starter, l[0])
-			switch mode {
-			case DFS:
-				t.Executor = append(t.Executor, &DFSExecutor{
-					Idx:    idx,
-					Tpg:    &t,
-					Ending: make(chan bool),
-				})
-			case DFSNotify:
-				t.Executor = append(t.Executor, &DFSNotifyExecutor{
-					Idx:       idx,
-					Tpg:       &t,
-					Ending:    make(chan bool),
-					Threshold: threshold,
-				})
-			default:
-				panic("not implemented")
-			}
+			t.Executor = append(t.Executor, &DFSExecutor{
+				Idx:    idx,
+				Tpg:    &t,
+				Ending: make(chan bool),
+			})
 		}
 	}
 	t.Finish = make(chan int)
