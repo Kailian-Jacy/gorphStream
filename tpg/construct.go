@@ -12,7 +12,7 @@ var (
 	threshold = 100
 )
 
-func Construct(txns []*utils.Txn) TpgMeta {
+func Construct(txns []*utils.Txn) *TpgMeta {
 	skipLists := decompose(txns)
 	// Construct into TPG meta.
 	meta := TpgMeta{}
@@ -42,7 +42,7 @@ func Construct(txns []*utils.Txn) TpgMeta {
 	meta.Finish = make(chan int)
 	meta.Done = make([]bool, len(meta.Starter))
 
-	return meta
+	return &meta
 }
 
 // Preprocess for operations. Sort them with proxy.

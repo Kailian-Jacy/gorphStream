@@ -35,7 +35,7 @@ func Dump() {
 	}
 }
 
-func InitStorage(schema int) error {
+func Init(schema int) error {
 	s.commited = make([]int, schema)
 	s.latestVersion = make([]int64, schema)
 	s.numStatus = schema
