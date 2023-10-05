@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"morphGo/storage"
-	"morphGo/utils"
+	"errors"
+	"gorphStream/events"
+	"gorphStream/storage"
 )
 
 /*
@@ -24,28 +25,35 @@ const BANKER_SCHEMA = 2
 var V1, V2 = 500, 200
 
 // Just write some deposit.
-var deposit = func(target storage.ParamView, _ storage.ParamView) {
+var deposit = func(target storage.ParamView, _ storage.ParamView) error {
 	target.Set(V1)
+	return nil
 }
 
 // Check the Balance in the other account and write to this one.
-var transferReceive = func(target storage.ParamView, params storage.ParamView) {
+var transferReceive = func(target storage.ParamView, params storage.ParamView) error {
 	if params.Get(0) >= V2 {
 		total := params.Get(1) + V2
 		target.Set(total)
+		return nil
+	} else {
+		return errors.New("insufficient balance")
 	}
 }
-var transferSend = func(target storage.ParamView, params storage.ParamView) {
+var transferSend = func(target storage.ParamView, params storage.ParamView) error {
 	deposit := params.Get(0)
 	if deposit >= V2 {
 		target.Set(deposit - V2)
+		return nil
+	} else {
+		return errors.New("insufficient valance")
 	}
 }
 
 // Assemble into transactions.
-var DepositTxn = utils.Txn{
-	Ops: []utils.Operation{
-		&utils.W{
+var DepositTxn = events.Txn{
+	Ops: []events.Operation{
+		&events.W{
 			Name:   "depositA",
 			Params: nil,
 			Target: A,
@@ -54,17 +62,17 @@ var DepositTxn = utils.Txn{
 	Timestamp: int64(111),
 }
 
-var TransferA2BTxn = utils.Txn{
-	Ops: []utils.Operation{
+var TransferA2BTxn = events.Txn{
+	Ops: []events.Operation{
 		// B Add.
-		&utils.W{
+		&events.W{
 			Name:   "B receive from A",
 			Params: []int{A, B},
 			Target: B,
 			Do:     transferReceive,
 		},
 		// A decrease.
-		&utils.W{
+		&events.W{
 			Name:   "A send to B",
 			Params: []int{A},
 			Target: A,
@@ -74,17 +82,17 @@ var TransferA2BTxn = utils.Txn{
 	Timestamp: int64(222),
 }
 
-var TransferB2ATxn = utils.Txn{
-	Ops: []utils.Operation{
+var TransferB2ATxn = events.Txn{
+	Ops: []events.Operation{
 		// B Add.
-		&utils.W{
+		&events.W{
 			Name:   "A receive from B",
 			Params: []int{B, A},
 			Target: A,
 			Do:     transferReceive,
 		},
 		// A decrease.
-		&utils.W{
+		&events.W{
 			Name:   "B send to A",
 			Params: []int{B},
 			Target: B,

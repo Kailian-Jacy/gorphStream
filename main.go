@@ -1,10 +1,10 @@
 package main
 
 import (
-	"morphGo/cmd"
-	"morphGo/storage"
-	"morphGo/tpg"
-	"morphGo/utils"
+	"gorphStream/cmd"
+	"gorphStream/events"
+	"gorphStream/storage"
+	"gorphStream/tpg"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func exampleWithNaiveApi() {
 	storage.Init(cmd.BANKER_SCHEMA)
 	tpg.Construct(
 		// Shuffle input.
-		[]*utils.Txn{
+		[]*events.Txn{
 			&cmd.TransferA2BTxn,
 			&cmd.TransferB2ATxn,
 			&cmd.DepositTxn,

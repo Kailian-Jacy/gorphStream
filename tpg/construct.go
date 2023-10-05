@@ -1,8 +1,8 @@
 package tpg
 
 import (
-	"morphGo/storage"
-	"morphGo/utils"
+	events "gorphStream/events"
+	"gorphStream/storage"
 
 	"golang.org/x/exp/slices"
 )
@@ -12,7 +12,7 @@ var (
 	threshold = 100
 )
 
-func Construct(txns []*utils.Txn) *TpgMeta {
+func Construct(txns []*events.Txn) *TpgMeta {
 	skipLists := decompose(txns)
 	// Construct into TPG meta.
 	meta := TpgMeta{}
@@ -46,9 +46,9 @@ func Construct(txns []*utils.Txn) *TpgMeta {
 }
 
 // Preprocess for operations. Sort them with proxy.
-func decompose(txns []*utils.Txn) [][]*TpgNode {
+func decompose(txns []*events.Txn) [][]*TpgNode {
 	// Split these Operations into State-partitioned arrays.
-	slices.SortFunc(txns, func(a, b *utils.Txn) int {
+	slices.SortFunc(txns, func(a, b *events.Txn) int {
 		if a.Timestamp < b.Timestamp {
 			return -1
 		} else {
@@ -85,7 +85,7 @@ func decompose(txns []*utils.Txn) [][]*TpgNode {
 				Notify: nil,
 			}
 			// If it's write operation, add PD from dependencies.
-			if op.Type() == utils.WRITE {
+			if op.Type() == events.WRITE {
 				newNode.DCount = len(op.Dependencies())
 				if newNode.DCount > 0 {
 					newNode.Status = BLK

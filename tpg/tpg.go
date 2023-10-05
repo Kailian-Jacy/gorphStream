@@ -1,6 +1,6 @@
 package tpg
 
-import "morphGo/utils"
+import "gorphStream/events"
 
 const (
 	BLK = iota + 1
@@ -21,7 +21,7 @@ type TpgMeta struct {
 
 type TpgNode struct {
 	// Operations registered for this node.
-	Opt utils.Operation
+	Opt events.Operation
 	// Time next nodes.
 	TD *TpgNode
 	// Parameter next nodes.

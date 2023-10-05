@@ -53,7 +53,7 @@ So we provided a delegation as `ParamView` to proxy the value visiting. It handl
 
 ```golang
   // Defines the parameter
-  utils.W{
+  events.W{
     ...
     Params: []int{A, B},
   }
