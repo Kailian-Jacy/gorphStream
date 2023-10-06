@@ -1,6 +1,4 @@
-# Transaction Processing Graph
-
-[toc]
+# Task Precedence Graph
 
 ---
 
